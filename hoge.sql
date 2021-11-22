@@ -8,62 +8,70 @@ Const as (
     *
   FROM (
     SELECT 
-      ROW_NUMBER() OVER() no,
-      id,action,
+      ROW_NUMBER() OVER() _no,
+      id,"action" as _act,
       CASE
-        WHEN action == '!mod' THEN date2
+        WHEN "action" == '!mod' THEN date2
         ELSE date1
-      END as date,
+      END as _date,
       CASE
         WHEN value4 <> '' THEN value4
         WHEN value3 <> '' THEN value3
         WHEN value2 <> '' THEN value2
         WHEN value1 <> '' THEN value1
         ELSE NULL
-      END as val,
+      END as _val,
       CASE
         WHEN value4 <> '' THEN 'value4'
         WHEN value3 <> '' THEN 'value3'
         WHEN value2 <> '' THEN 'value2'
         WHEN value1 <> '' THEN 'value1'
         ELSE NULL
-      END as name
+      END as _name
     FROM -
   )
-  WHERE val is not NULL AND name is not NULL
+  WHERE _val is not NULL AND _name is not NULL
+)
+
+,AsDefined as (
+  SELECT 
+    ROW_NUMBER() OVER() _no, 
+    "name" as _name, 
+    code as _code, 
+    val as _val,
+    "name"||'-'||val as _planId
+  FROM .\def\plans.csv
 )
 
 ,AsaCode as (
 SELECT
-  p.no, p.name, p.code, p.val, COALESCE(a.月数, 0) as 月数
-FROM 
-  (
-    SELECT ROW_NUMBER() OVER() no, name, code, val
-    FROM .\def\plans.csv
-  ) as p 
+  p._no, p._name, p._code, p._val, COALESCE(a.月数, 0) as 月数
+  -- p._planId, COALESCE(a.月数, 0) as 月数
+FROM AsDefined as p 
   LEFT JOIN (
     SELECT
-      name,
-      val,
+      _name,
+      _val,
       COUNT(*) as 月数
     FROM (
       SELECT 
-        MAX(no) as no,
+        MAX(_no) as no,
         id,
-        action,
-        date,
-        name,
-        val
+        _act,
+        _date,
+        _name,
+        _val
       FROM AsaNumber, Const
-      -- WHERE date <= date('1981-03-01', '+1 months','start of month') AND action <> 'fin'
-      WHERE date <= date(Const.targetDate, '+1 months','start of month') AND action <> 'fin'
+      WHERE _date <= date(Const.targetDate, '+1 months','start of month') AND _act <> 'fin'
       GROUP BY id
     )
-    GROUP BY name, val
+    GROUP BY _name, _val
   ) as a
-  ON p.name = a.name AND p.val = a.val
+  ON p._name = a._name AND p._val = a._val
 )
 
 
+-- select * from Const
 -- select * from AsaNumber
+-- select * from AsDefined
 select * from AsaCode
