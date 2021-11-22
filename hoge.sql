@@ -1,5 +1,9 @@
 WITH 
-AsaNumber as (
+Const as (
+  SELECT '1981-03-01' as targetDate
+)
+
+,AsaNumber as (
   SELECT
     *
   FROM (
@@ -31,33 +35,35 @@ AsaNumber as (
 
 ,AsaCode as (
 SELECT
-  code,
-  val,
-  COUNT(codeId) as 数
-FROM (
-  SELECT
-    p.no, p.name, p.code, p.val, 
-    a.id, a.action, a.date,
-    p.code||'-'||p.val as codeId
-  FROM (
+  p.no, p.name, p.code, p.val, COALESCE(a.月数, 0) as 月数
+FROM 
+  (
     SELECT ROW_NUMBER() OVER() no, name, code, val
     FROM .\def\plans.csv
-  ) as p
+  ) as p 
   LEFT JOIN (
-    SELECT 
-      MAX(no) as no,
-      id,
-      action,
-      date,
+    SELECT
       name,
-      val
-    FROM AsaNumber
-    WHERE date <= date('1981-07-01', '','start of month') AND action <> 'fin'
-    GROUP BY id
-  ) as a ON p.name = a.name AND p.val = a.val
+      val,
+      COUNT(*) as 月数
+    FROM (
+      SELECT 
+        MAX(no) as no,
+        id,
+        action,
+        date,
+        name,
+        val
+      FROM AsaNumber, Const
+      -- WHERE date <= date('1981-03-01', '+1 months','start of month') AND action <> 'fin'
+      WHERE date <= date(Const.targetDate, '+1 months','start of month') AND action <> 'fin'
+      GROUP BY id
+    )
+    GROUP BY name, val
+  ) as a
+  ON p.name = a.name AND p.val = a.val
 )
-GROUP BY code
-)
+
 
 -- select * from AsaNumber
 select * from AsaCode
