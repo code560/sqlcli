@@ -11,7 +11,7 @@ call :MD "%OUTPUT%"
 
 
 @echo on
-cat %INPUT%|%BIN% -ih -icsv -oh -out "%OUTPUT%" -q %SQL%
+type %INPUT%|%BIN% -ih -icsv -oh -out "%OUTPUT%" -q %SQL%
 @echo off
 
 :END
